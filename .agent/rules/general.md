@@ -1,0 +1,1 @@
+Read @CLAUDE.md or @GEMINI.md (in the project root dir) file first which provides guidance when working with code in this repository.

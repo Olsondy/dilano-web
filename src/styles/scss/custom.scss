@@ -1,0 +1,10 @@
+.table-search {
+  .n-collapse {
+    --n-title-font-size: 15px !important;
+  }
+}
+
+// 强制覆盖 CSS 变量
+body {
+  font-family: 'Maple Mono CN' !important;
+}
