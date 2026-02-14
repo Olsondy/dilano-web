@@ -27,9 +27,6 @@ declare module "@elegant-router/types" {
     "customer": "/customer";
     "customer_info": "/customer/info";
     "customer_referral": "/customer/referral";
-    "demo": "/demo";
-    "demo_demo": "/demo/demo";
-    "demo_tree": "/demo/tree";
     "home": "/home";
     "iframe-page": "/iframe-page/:url";
     "login": "/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?";
@@ -97,7 +94,6 @@ declare module "@elegant-router/types" {
     | "404"
     | "500"
     | "customer"
-    | "demo"
     | "home"
     | "iframe-page"
     | "login"
@@ -133,8 +129,6 @@ declare module "@elegant-router/types" {
     | "user-center"
     | "customer_info"
     | "customer_referral"
-    | "demo_demo"
-    | "demo_tree"
     | "home"
     | "monitor_cache"
     | "monitor_logininfor"
