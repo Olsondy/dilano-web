@@ -44,6 +44,19 @@ build/          # Build Config
 
 ---
 
+## Development Standards & Documentation
+
+> **Mandatory**: All development must strictly adhere to the architecture and conventions defined in the `docs/` directory.
+
+- **Request & Env**: Refer to [API_REQUEST_ARCHITECTURE.md](./docs/API_REQUEST_ARCHITECTURE.md) for interceptors and multi-env logic.
+- **UI & Theme**: Refer to [UI_DESIGN_GUIDE.md](./docs/UI_DESIGN_GUIDE.md) for Naive UI and UnoCSS standards.
+- **Routing**: Refer to [ROUTING_PERMISSION_MODEL.md](./docs/ROUTING_PERMISSION_MODEL.md) for elegant-router and permission guards.
+- **Business Logic**: Refer to [BUSINESS_MODULE_MAP.md](./docs/BUSINESS_MODULE_MAP.md) for directory structure and CRUD patterns.
+- **Persistence**: Refer to [STATE_PERSISTENCE_STRATEGY.md](./docs/STATE_PERSISTENCE_STRATEGY.md) for storage and encryption.
+- **Deployment**: Refer to [DEPLOYMENT_OPERATIONS.md](./docs/DEPLOYMENT_OPERATIONS.md) for runtime config and Nginx setups.
+
+---
+
 ## Token Optimization Rules
 
 > **Core Principle**: Minimize unnecessary data transmission; prioritize precise operations.
