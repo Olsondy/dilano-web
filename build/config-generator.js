@@ -25,8 +25,8 @@ function generateAppConfig(mode) {
  * Runtime Application Configuration
  * Generated from .env.${mode} during build
  */
-window.__APP_CONFIG__ = ${JSON.stringify(config, null, 2)};
-Object.freeze(window.__APP_CONFIG__);`
+window.APP_CONFIG = ${JSON.stringify(config, null, 2)};
+Object.freeze(window.APP_CONFIG);`
 
   const outputPath = path.resolve(root, 'public/app.config.js')
   fs.writeFileSync(outputPath, content)

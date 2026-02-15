@@ -9,7 +9,7 @@ export function createServiceConfig(env: Env.ImportMeta) {
   // Merge runtime config -> env config
   const { VITE_SERVICE_BASE_URL, VITE_OTHER_SERVICE_BASE_URL, VITE_APP_BASE_API, VITE_APP_WEBSOCKET } = {
     ...env,
-    ...(window as any).appConfig
+    ...((window as any).APP_CONFIG || {})
   }
 
   let other = {} as Record<App.Service.OtherBaseURLKey, string>
@@ -64,7 +64,7 @@ export function getServiceBaseURL(env: Env.ImportMeta, isProxy: boolean = env.DE
   })
 
   return {
-    baseURL: isProxy ? proxyPattern : (baseURL || '') + proxyPattern,
+    baseURL: isProxy ? proxyPattern : (baseURL || '') + (proxyPattern || ''),
     otherBaseURL
   }
 }
