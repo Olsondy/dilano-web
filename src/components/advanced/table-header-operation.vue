@@ -56,7 +56,7 @@ function handleExport() {
   <NSpace :align="itemAlign" wrap justify="end" class="lt-sm:w-200px">
     <slot name="prefix"></slot>
     <slot name="default">
-      <NButton v-if="showAdd" :disabled="disableAdd" size="small" secondary type="primary" @click="add">
+      <NButton v-if="showAdd" :disabled="disableAdd" size="small" type="primary" @click="add">
         <template #icon>
           <icon-material-symbols:add class="text-icon" />
         </template>

@@ -180,8 +180,7 @@ async function handlePhoneBlur(type: 'customer' | 'referral') {
     return
   }
 
-  const phoneRegex = /^1[3-9]\d{9}$/
-  if (!phoneRegex.test(phone)) return
+  if (!/^1[3-9]\d{9}$/.test(phone)) return
 
   if (type === 'customer') customerPhoneLoading.value = true
   else referralPhoneLoading.value = true
@@ -189,32 +188,12 @@ async function handlePhoneBlur(type: 'customer' | 'referral') {
   try {
     const { data, error } = await fetchGetPartiesByPhone({ phoneNumber: phone })
     if (!error && data) {
-      // partyType: 'customer' | 'referral'
-      const isFormal = data.partyType === 'customer'
       if (type === 'customer') {
-        if (isFormal) {
-          window.$message?.error('该客户已存在，无法报备')
-          isCustomerExist.value = true
-        } else {
-          isCustomerExist.value = false
-        }
-        isCustomerFormal.value = isFormal
-        model.customer.partyName = data.partyName
-        model.customer.address = data.address || ''
-        model.customer.landline = data.landline || ''
-        if (data.id) {
-          model.customer.id = data.id
-        }
+        fillCustomerData(data)
       } else {
-        isReferralFormal.value = isFormal
-        model.referral.partyName = data.partyName
-        model.referral.address = data.address || ''
-        if (data.id) {
-          model.referral.id = data.id
-        }
+        fillReferralData(data)
       }
     } else if (type === 'customer') {
-      // Not found or error -> reset formal state
       isCustomerExist.value = false
       isCustomerFormal.value = false
       model.customer.id = ''
@@ -225,6 +204,44 @@ async function handlePhoneBlur(type: 'customer' | 'referral') {
   } finally {
     if (type === 'customer') customerPhoneLoading.value = false
     else referralPhoneLoading.value = false
+  }
+}
+
+function fillCustomerData(data: any) {
+  const isFormal = data.partyType === 'customer'
+  if (isFormal) {
+    window.$message?.error('该客户已存在，无法报备')
+    isCustomerExist.value = true
+  } else {
+    isCustomerExist.value = false
+  }
+  isCustomerFormal.value = isFormal
+  model.customer.partyName = data.partyName
+  model.customer.address = data.address || ''
+  model.customer.landline = data.landline || ''
+  if (data.id) {
+    model.customer.id = data.id
+  }
+
+  // 回填联系人信息
+  const contacts = data.contacts || data.customerContacts
+  if (contacts && contacts.length > 0) {
+    model.customerContacts = contacts.map((c: any) => ({
+      contactName: c.contactName,
+      contactPhone: c.contactPhone,
+      contactEmail: c.contactEmail,
+      preferred: c.preferred,
+      memos: c.memos
+    }))
+  }
+}
+
+function fillReferralData(data: any) {
+  isReferralFormal.value = data.partyType === 'customer'
+  model.referral.partyName = data.partyName
+  model.referral.address = data.address || ''
+  if (data.id) {
+    model.referral.id = data.id
   }
 }
 

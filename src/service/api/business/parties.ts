@@ -20,7 +20,7 @@ export function fetchGetPartyDetail(id: CommonType.IdType) {
 /** Add party */
 export function fetchAddParty(data: Api.Business.PartyOperateParams) {
   return request<null>({
-    url: '/business/parties/v1/',
+    url: '/business/parties/v1',
     method: 'post',
     data
   })
@@ -29,7 +29,7 @@ export function fetchAddParty(data: Api.Business.PartyOperateParams) {
 /** Update party */
 export function fetchUpdateParty(data: Api.Business.PartyOperateParams) {
   return request<null>({
-    url: '/business/parties/v1/',
+    url: '/business/parties/v1',
     method: 'put',
     data
   })

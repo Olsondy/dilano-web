@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue'
+import { useLoading } from '@sa/hooks'
 import { fetchCreateProject, fetchUpdateProject } from '@/service/api/business/project'
 import { useFormRules, useNaiveForm } from '@/hooks/common/form'
 import { formatCurrency } from '@/utils/common'
@@ -28,6 +29,7 @@ const visible = defineModel<boolean>('visible', {
   default: false
 })
 
+const { loading, startLoading, endLoading } = useLoading()
 const { formRef, validate, restoreValidation } = useNaiveForm()
 const { createRequiredRule, createNumberRequiredRule } = useFormRules()
 
@@ -94,6 +96,8 @@ function closeDrawer() {
 async function handleSubmit() {
   await validate()
 
+  startLoading()
+
   const {
     id,
     projectName,
@@ -106,36 +110,30 @@ async function handleSubmit() {
   } = model
 
   // request
-  if (props.operateType === 'add') {
-    const { error } = await fetchCreateProject({
-      projectName,
-      stoneTypeList,
-      quotedPrice,
-      rebateCommissionRate,
-      projectPhase,
-      sendSmsSwitch,
-      timeOutSwitch
-    })
-    if (error) return
+  const api = props.operateType === 'add' ? fetchCreateProject : fetchUpdateProject
+  const params =
+    props.operateType === 'add'
+      ? { projectName, stoneTypeList, quotedPrice, rebateCommissionRate, projectPhase, sendSmsSwitch, timeOutSwitch }
+      : {
+          id,
+          projectName,
+          stoneTypeList,
+          quotedPrice,
+          rebateCommissionRate,
+          projectPhase,
+          sendSmsSwitch,
+          timeOutSwitch
+        }
+
+  const { error } = await api(params as any)
+
+  if (!error) {
+    window.$message?.success($t('common.updateSuccess'))
+    closeDrawer()
+    emit('submitted')
   }
 
-  if (props.operateType === 'edit') {
-    const { error } = await fetchUpdateProject({
-      id,
-      projectName,
-      stoneTypeList,
-      quotedPrice,
-      rebateCommissionRate,
-      projectPhase,
-      sendSmsSwitch,
-      timeOutSwitch
-    })
-    if (error) return
-  }
-
-  window.$message?.success($t('common.updateSuccess'))
-  closeDrawer()
-  emit('submitted')
+  endLoading()
 }
 
 watch(visible, () => {
@@ -149,100 +147,102 @@ watch(visible, () => {
 <template>
   <NDrawer v-model:show="visible" :title="title" display-directive="show" :width="800" class="max-w-90%">
     <NDrawerContent :title="title" :native-scrollbar="false" closable>
-      <NForm ref="formRef" :model="model" :rules="rules">
-        <NFormItem label="项目名" path="projectName">
-          <NInput v-model:value="model.projectName" placeholder="请输入项目名" />
-        </NFormItem>
-        <NFormItem label="石材类型" path="stoneTypeList">
-          <DictSelect
-            v-model:value="model.stoneTypeList"
-            :placeholder="$t('请选择石材类型')"
-            dict-code="business_project_stones"
-            multiple
-          />
-        </NFormItem>
-        <NRow :gutter="[0, 24]">
-          <NCol :span="8">
-            <NFormItem label="项目阶段" path="projectPhase">
-              <DictSelect
-                v-model:value="model.projectPhase"
-                :placeholder="$t('请选择项目阶段')"
-                dict-code="business_project_phase"
-                clearable
-              />
-            </NFormItem>
-          </NCol>
-          <NCol :span="7" :offset="1">
-            <NFormItem label="报价" path="quotedPrice">
-              <NInputNumber
-                v-model:value="model.quotedPrice"
-                :parse="parseCurrency"
-                :format="
-                  (value: number | null) => {
-                    if (value === null) return ''
-                    const numberValue = formatCurrency(value)
-                    return `${numberValue}`
-                  }
-                "
-                placeholder="请输入报价"
-              />
-            </NFormItem>
-          </NCol>
-          <NCol :span="7" :offset="1">
-            <NFormItem label="返点佣金比例" path="rebateCommissionRate">
-              <NInputNumber
-                v-model:value="model.rebateCommissionRate"
-                :format="
-                  (value: number | null) => {
-                    if (value === null) return ''
-                    // Display as value * 100 (e.g., 0.05 -> 5)
-                    const displayValue = (value * 100).toFixed(2).replace(/\.?0+$/, '')
-                    return `${displayValue}%`
-                  }
-                "
-                :parse="
-                  (input: string) => {
-                    const nums = input.replace(/%/g, '').trim()
-                    // Parse as input / 100 (e.g., 5 -> 0.05)
-                    if (/^\d+(\.(\d+)?)?$/.test(nums)) return Number(nums) / 100
-                    return nums === '' ? null : Number.NaN
-                  }
-                "
-                placeholder="请输入返点佣金比例"
-              />
-            </NFormItem>
-          </NCol>
-        </NRow>
+      <NSpin :show="loading">
+        <NForm ref="formRef" :model="model" :rules="rules">
+          <NFormItem label="项目名" path="projectName">
+            <NInput v-model:value="model.projectName" placeholder="请输入项目名" />
+          </NFormItem>
+          <NFormItem label="石材类型" path="stoneTypeList">
+            <DictSelect
+              v-model:value="model.stoneTypeList"
+              :placeholder="$t('请选择石材类型')"
+              dict-code="business_project_stones"
+              multiple
+            />
+          </NFormItem>
+          <NRow :gutter="[0, 24]">
+            <NCol :span="8">
+              <NFormItem label="项目阶段" path="projectPhase">
+                <DictSelect
+                  v-model:value="model.projectPhase"
+                  :placeholder="$t('请选择项目阶段')"
+                  dict-code="business_project_phase"
+                  clearable
+                />
+              </NFormItem>
+            </NCol>
+            <NCol :span="7" :offset="1">
+              <NFormItem label="报价" path="quotedPrice">
+                <NInputNumber
+                  v-model:value="model.quotedPrice"
+                  :parse="parseCurrency"
+                  :format="
+                    (value: number | null) => {
+                      if (value === null) return ''
+                      const numberValue = formatCurrency(value)
+                      return `${numberValue}`
+                    }
+                  "
+                  placeholder="请输入报价"
+                />
+              </NFormItem>
+            </NCol>
+            <NCol :span="7" :offset="1">
+              <NFormItem label="返点佣金比例" path="rebateCommissionRate">
+                <NInputNumber
+                  v-model:value="model.rebateCommissionRate"
+                  :format="
+                    (value: number | null) => {
+                      if (value === null) return ''
+                      // Display as value * 100 (e.g., 0.05 -> 5)
+                      const displayValue = (value * 100).toFixed(2).replace(/\.?0+$/, '')
+                      return `${displayValue}%`
+                    }
+                  "
+                  :parse="
+                    (input: string) => {
+                      const nums = input.replace(/%/g, '').trim()
+                      // Parse as input / 100 (e.g., 5 -> 0.05)
+                      if (/^\d+(\.(\d+)?)?$/.test(nums)) return Number(nums) / 100
+                      return nums === '' ? null : Number.NaN
+                    }
+                  "
+                  placeholder="请输入返点佣金比例"
+                />
+              </NFormItem>
+            </NCol>
+          </NRow>
 
-        <NRow :gutter="[0, 24]">
-          <NCol :span="12">
-            <NFormItem path="sendSmsSwitch">
-              <template #label>
-                <div class="flex-center">
-                  <FormTip :content="$t('关闭后将无法接收项目阶段变更的短信提醒')" />
-                  <span>{{ $t('发送短信提醒') }}</span>
-                </div>
-              </template>
-              <DictRadio v-model:value="model.sendSmsSwitch" dict-code="business_project_switch" />
-            </NFormItem>
-          </NCol>
-          <NCol :span="8" :offset="4">
-            <NFormItem path="timeOutSwitch">
-              <template #label>
-                <div class="flex-center">
-                  <FormTip :content="$t('关闭后将无法接收项目进度超时的系统通知')" />
-                  <span>{{ $t('项目阶段超时系统通知') }}</span>
-                </div>
-              </template>
-              <DictRadio v-model:value="model.timeOutSwitch" dict-code="business_project_switch" />
-            </NFormItem>
-          </NCol>
-        </NRow>
-      </NForm>
+          <NRow :gutter="[0, 24]">
+            <NCol :span="12">
+              <NFormItem path="sendSmsSwitch">
+                <template #label>
+                  <div class="flex-center">
+                    <FormTip :content="$t('关闭后将无法接收项目阶段变更的短信提醒')" />
+                    <span>{{ $t('发送短信提醒') }}</span>
+                  </div>
+                </template>
+                <DictRadio v-model:value="model.sendSmsSwitch" dict-code="business_project_switch" />
+              </NFormItem>
+            </NCol>
+            <NCol :span="8" :offset="4">
+              <NFormItem path="timeOutSwitch">
+                <template #label>
+                  <div class="flex-center">
+                    <FormTip :content="$t('关闭后将无法接收项目进度超时的系统通知')" />
+                    <span>{{ $t('项目阶段超时系统通知') }}</span>
+                  </div>
+                </template>
+                <DictRadio v-model:value="model.timeOutSwitch" dict-code="business_project_switch" />
+              </NFormItem>
+            </NCol>
+          </NRow>
+        </NForm>
+      </NSpin>
       <template #footer>
         <NSpace :size="16">
           <NButton @click="closeDrawer">{{ $t('common.cancel') }}</NButton>
-          <NButton type="primary" @click="handleSubmit">{{ $t('common.confirm') }}</NButton>
+          <NButton type="primary" :loading="loading" @click="handleSubmit">{{ $t('common.confirm') }}</NButton>
         </NSpace>
       </template>
     </NDrawerContent>

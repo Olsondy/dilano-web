@@ -173,13 +173,15 @@ watch(visible, () => {
     if (props.operateType === 'edit' && props.rowData) {
       // Clone rowData to model
       // Be careful with deep structures like customerContacts
-      const { customerContacts, ...rest } = props.rowData
+      const { ...rest } = props.rowData
+      const contacts = (props.rowData as any).contacts || (props.rowData as any).customerContacts
+
       Object.assign(model, rest)
 
-      if (customerContacts) {
-        model.customerContacts = customerContacts.map(c => ({ ...c }))
+      if (contacts && contacts.length > 0) {
+        model.customerContacts = contacts.map((c: any) => ({ ...c }))
       } else {
-        // Ensure at least one contact slot or empty array based on requirement
+        // Ensure at least one contact slot if none exist
         model.customerContacts = [
           {
             contactName: '',

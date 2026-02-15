@@ -9,14 +9,6 @@ import { themeVars } from '@/theme/vars'
 
 /** Init theme settings */
 export function initThemeSettings() {
-  const isProd = import.meta.env.PROD
-
-  // if it is development mode, the theme settings will not be cached, by update `themeSettings` in `src/theme/settings.ts` to update theme settings
-  if (!isProd) return themeSettings
-
-  // if it is production mode, the theme settings will be cached in localStorage
-  // if want to update theme settings when publish new version, please update `overrideThemeSettings` in `src/theme/settings.ts`
-
   const localSettings = localStg.get('themeSettings')
 
   let settings = defu(localSettings, themeSettings)
@@ -242,6 +234,11 @@ function getNaiveThemeColors(colors: App.Theme.ThemeColor, recommended = false) 
 export function getNaiveTheme(colors: App.Theme.ThemeColor, recommended = false) {
   const { primary: colorLoading } = colors
 
+  // Calculate contrast text color for primary button
+  const { r, g, b } = getRgb(colors.primary)
+  const isLight = r * 0.299 + g * 0.587 + b * 0.114 > 192
+  const textColor = isLight ? '#000000' : '#ffffff'
+
   const theme: GlobalThemeOverrides = {
     common: {
       ...getNaiveThemeColors(colors, recommended),
@@ -254,7 +251,11 @@ export function getNaiveTheme(colors: App.Theme.ThemeColor, recommended = false)
       borderRadius: '6px'
     },
     Button: {
-      textColorPrimary: '#ffffff'
+      textColorPrimary: textColor,
+      textColorHoverPrimary: textColor,
+      textColorPressedPrimary: textColor,
+      textColorFocusPrimary: textColor,
+      textColorDisabledPrimary: textColor
     }
   }
 

@@ -81,7 +81,7 @@ const {
           <NButton
             type="primary"
             text
-            class="font-bold"
+            class="font-bold underline"
             onClick={() => router.push({ path: '/project/info', query: { projectName: row.projectName } })}
           >
             {row.projectName}
@@ -188,7 +188,7 @@ async function edit(id: CommonType.IdType) {
           :disabled-delete="true"
           :loading="loading"
           :show-add="hasAuth('business:referral:add')"
-          :show-delete="hasAuth('business:referral:remove')"
+          :show-delete="false"
           :show-export="hasAuth('business:referral:export')"
           @add="handleAdd"
           @refresh="getData"
