@@ -6,10 +6,11 @@ import json5 from 'json5'
  * @param env The current env
  */
 export function createServiceConfig(env: Env.ImportMeta) {
-  // Merge runtime config -> env config
+  // Merge runtime config -> env config (only in browser environment)
+  const runtimeConfig = typeof window !== 'undefined' ? (window as any).APP_CONFIG || {} : {}
   const { VITE_SERVICE_BASE_URL, VITE_OTHER_SERVICE_BASE_URL, VITE_APP_BASE_API, VITE_APP_WEBSOCKET } = {
     ...env,
-    ...((window as any).APP_CONFIG || {})
+    ...runtimeConfig
   }
 
   let other = {} as Record<App.Service.OtherBaseURLKey, string>
