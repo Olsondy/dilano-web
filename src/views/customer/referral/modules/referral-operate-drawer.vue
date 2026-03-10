@@ -578,8 +578,8 @@ watch(visible, async () => {
                   v-model:value="model.project.phaseTimeout"
                   disabled
                   :options="[
-                    { label: '正常', value: '0' },
-                    { label: '超时', value: '1' }
+                    { label: '正常', value: '1' },
+                    { label: '超时', value: '0' }
                   ]"
                   placeholder=""
                 />
