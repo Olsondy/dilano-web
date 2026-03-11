@@ -44,3 +44,17 @@ export function fetchGetPartiesByPhone(params: { phoneNumber: string }) {
     params
   })
 }
+
+/** 获取未关联的项目信息（供报备时搜索使用） */
+export function fetchGetUnreferencedProjects(params?: { projectName?: string; pageNum?: number; pageSize?: number }) {
+  const { pageNum, pageSize, ...data } = params || {}
+  return request<{
+    rows: Api.Business.Project[]
+    total: number
+  }>({
+    url: '/business/referral/v1/unreferenced-projects',
+    method: 'post',
+    data,
+    params: { pageNum, pageSize }
+  })
+}

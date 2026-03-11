@@ -2,8 +2,11 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLoading } from '@sa/hooks'
-import { fetchGetPartiesByPhone, fetchMerageReferral } from '@/service/api/business/referral'
-import { fetchGetProjectList } from '@/service/api/business/project'
+import {
+  fetchGetPartiesByPhone,
+  fetchGetUnreferencedProjects,
+  fetchMerageReferral
+} from '@/service/api/business/referral'
 import { useFormRules, useNaiveForm } from '@/hooks/common/form'
 import { formatCurrency } from '@/utils/common'
 import { $t } from '@/locales'
@@ -275,17 +278,55 @@ function handlePreferredChange(index: number) {
   })
 }
 
-// Project Remote Search
+// Project Remote Search with Infinite Scroll
 const projectOptions = ref<Api.Business.Project[]>([])
 const projectLoading = ref(false)
+const projectPageNum = ref(1)
+const projectPageSize = ref(10)
+const projectTotal = ref(0)
+const projectSearchQuery = ref('')
 
-async function handleSearchProject(query: string) {
+async function fetchProjectsPage(pageNum: number, query: string) {
   projectLoading.value = true
-  const { data, error } = await fetchGetProjectList({ projectName: query, pageNum: 1, pageSize: 20 })
+  const { data, error } = await fetchGetUnreferencedProjects({
+    projectName: query,
+    pageNum,
+    pageSize: projectPageSize.value
+  })
   if (!error && data) {
-    projectOptions.value = data.rows
+    return { rows: data.rows, total: data.total }
   }
   projectLoading.value = false
+  return { rows: [], total: 0 }
+}
+
+async function handleSearchProject(query: string) {
+  projectSearchQuery.value = query
+  projectPageNum.value = 1
+  projectOptions.value = []
+  projectTotal.value = 0
+
+  const { rows, total } = await fetchProjectsPage(1, query)
+  projectOptions.value = rows
+  projectTotal.value = total
+  projectLoading.value = false
+}
+
+async function handleProjectScroll(e: any) {
+  // Check if user scrolled to bottom
+  const target = e.target
+  if (!target) return
+
+  const { scrollHeight, scrollTop, clientHeight } = target
+  const isNearBottom = scrollHeight - scrollTop - clientHeight < 50
+
+  if (isNearBottom && !projectLoading.value && projectPageNum.value * projectPageSize.value < projectTotal.value) {
+    projectPageNum.value += 1
+    projectLoading.value = true
+    const { rows } = await fetchProjectsPage(projectPageNum.value, projectSearchQuery.value)
+    projectOptions.value = [...projectOptions.value, ...rows]
+    projectLoading.value = false
+  }
 }
 
 function handleSelectProject(value: string | null) {
@@ -514,6 +555,7 @@ watch(visible, async () => {
                   @search="handleSearchProject"
                   @update:value="handleSelectProject"
                   @blur="handleProjectBlur"
+                  @scroll="handleProjectScroll"
                 />
               </NFormItemGi>
               <NFormItemGi label="项目报价" path="project.quotedPrice">
