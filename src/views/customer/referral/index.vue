@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { NButton, NCard, NDataTable } from 'naive-ui'
+import { useBoolean } from '@sa/hooks'
 import { fetchGetReferral, fetchGetReferralList } from '@/service/api/business/referral'
 import { useAppStore } from '@/store/modules/app'
 import { useTable, useTableOperate } from '@/hooks/common/table'
@@ -12,6 +13,7 @@ import { $t } from '@/locales'
 import ButtonIcon from '@/components/custom/button-icon.vue'
 import ReferralSearch from './modules/referral-search.vue'
 import ReferralOperateDrawer from './modules/referral-operate-drawer.vue'
+import ReferralImportModal from './modules/referral-import-modal.vue'
 
 defineOptions({
   name: 'ReferralList'
@@ -24,6 +26,7 @@ useDict('business_project_phase')
 const appStore = useAppStore()
 const router = useRouter()
 const { hasAuth } = useAuth()
+const { bool: importVisible, setTrue: openImportModal } = useBoolean()
 const editingDetail = ref<Api.Business.ReferralDetail | null>(null)
 
 const {
@@ -176,6 +179,10 @@ async function edit(id: CommonType.IdType) {
     drawerVisible.value = true
   }
 }
+
+function handleImport() {
+  openImportModal()
+}
 </script>
 
 <template>
@@ -189,10 +196,19 @@ async function edit(id: CommonType.IdType) {
           :loading="loading"
           :show-add="hasAuth('business:referral:add')"
           :show-delete="false"
-          :show-export="hasAuth('business:referral:export')"
+          :show-export="false"
           @add="handleAdd"
           @refresh="getData"
-        />
+        >
+          <template #after>
+            <NButton v-if="hasAuth('business:referral:import')" size="small" ghost @click="handleImport">
+              <template #icon>
+                <icon-material-symbols:upload-rounded class="text-icon" />
+              </template>
+              {{ $t('common.import') }}
+            </NButton>
+          </template>
+        </TableHeaderOperation>
       </template>
       <NDataTable
         v-model:checked-row-keys="checkedRowKeys"
@@ -207,6 +223,7 @@ async function edit(id: CommonType.IdType) {
         :pagination="mobilePagination"
         class="h-full"
       />
+      <ReferralImportModal v-model:visible="importVisible" @submitted="getData" />
       <ReferralOperateDrawer
         v-model:visible="drawerVisible"
         :operate-type="operateType"
