@@ -1,6 +1,6 @@
 import { computed, effectScope, onScopeDispose, ref, toRefs, watch } from 'vue'
 import type { Ref } from 'vue'
-import { useEventListener, usePreferredColorScheme } from '@vueuse/core'
+import { usePreferredColorScheme } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { getPaletteColorByNumber } from '@sa/color'
 import { localStg } from '@/utils/storage'
@@ -164,13 +164,17 @@ export const useThemeStore = defineStore(SetupStoreId.Theme, () => {
     localStg.set('themeSettings', settings.value)
   }
 
-  // cache theme settings when page is closed or refreshed
-  useEventListener(window, 'beforeunload', () => {
-    cacheThemeSettings()
-  })
-
   // watch store
   scope.run(() => {
+    // persist theme settings whenever they change
+    watch(
+      settings,
+      () => {
+        cacheThemeSettings()
+      },
+      { deep: true }
+    )
+
     // watch dark mode
     watch(
       darkMode,
