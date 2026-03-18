@@ -88,14 +88,7 @@ const {
       align: 'center',
       minWidth: 120,
       render(row) {
-        const typeMap: Record<string, NaiveUI.ThemeColor> = {
-          已测量: 'info',
-          已报价: 'warning',
-          已签合同: 'success',
-          项目结束: 'success'
-        }
-        const tagType = typeMap[row.projectPhase] || 'default'
-        return <DictTag size="small" type={tagType} value={row.projectPhase} dictCode="business_project_phase" />
+        return <DictTag size="small" value={row.projectPhase} dictCode="business_project_phase" />
       }
     },
     {

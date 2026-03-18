@@ -51,7 +51,7 @@ function createDefaultModel(): Model {
     stoneTypeList: [],
     quotedPrice: null,
     rebateCommissionRate: 0.0005,
-    projectPhase: null,
+    projectPhase: 'created',
     sendSmsSwitch: '1',
     timeOutSwitch: '1'
   }
@@ -167,6 +167,8 @@ watch(visible, () => {
                   v-model:value="model.projectPhase"
                   :placeholder="$t('请选择项目阶段')"
                   dict-code="business_project_phase"
+                  :disabled="operateType === 'add'"
+                  :disabled-options="operateType === 'edit' ? ['created'] : []"
                   clearable
                 />
               </NFormItem>

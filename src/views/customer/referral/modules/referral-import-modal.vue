@@ -155,7 +155,7 @@ function handleError({ event }: { event?: ProgressEvent }) {
   let msg = $t('common.importFail')
   try {
     msg = JSON.parse(responseText).msg || msg
-  } catch (e) {}
+  } catch {}
 
   window.$message?.error(() => h('div', { innerHTML: msg }))
   success.value = false
