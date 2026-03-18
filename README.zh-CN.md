@@ -4,7 +4,7 @@
 
 DILANO ADMIN 企业管理解决方案。
 
-基于 **Vue 3** + **Vite** + **TypeScript** + **Naive UI** + **UnoCSS** 构建的现代化管理系统前端。
+基于 **Vue 3** + **Vite** + **TypeScript** + **Naive UI** + **SoybeanJs** +  **UnoCSS** 构建的现代化管理系统前端。
 
 ## 环境要求
 
