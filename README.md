@@ -2,7 +2,7 @@
 
 DILANO ADMIN Enterprise Management Solution.
 
-Modern management system frontend built with **Vue 3** + **Vite** + **TypeScript** + **Naive UI** + **UnoCSS**.
+Modern management system frontend built with **Vue 3** + **Vite** + **TypeScript** + **Naive UI** + **SoybeanJs** + **UnoCSS**.
 
 **[简体中文](./README.zh-CN.md)**
 
