@@ -9,6 +9,15 @@ export function fetchMerageReferral(data: Api.Business.ReferralOperateParams) {
   })
 }
 
+/** 修改客户报备（仅项目/渠道/备注） */
+export function fetchUpdateReferral(data: Api.Business.ReferralUpdateParams) {
+  return request<boolean>({
+    url: '/business/referral/v1',
+    method: 'put',
+    data
+  })
+}
+
 /** 批量删除客户报备 */
 export function fetchBatchDeleteReferral(ids: CommonType.IdType[]) {
   return request<boolean>({

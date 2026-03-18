@@ -5,7 +5,8 @@ import { useLoading } from '@sa/hooks'
 import {
   fetchGetPartiesByPhone,
   fetchGetUnreferencedProjects,
-  fetchMerageReferral
+  fetchMerageReferral,
+  fetchUpdateReferral
 } from '@/service/api/business/referral'
 import { useFormRules, useNaiveForm } from '@/hooks/common/form'
 import { formatCurrency } from '@/utils/common'
@@ -42,10 +43,12 @@ const router = useRouter()
 const title = computed(() => {
   const titles: Record<NaiveUI.TableOperateType, string> = {
     add: '新增客户报备',
-    edit: '编辑客户报备'
+    edit: '编辑报备项目与备注'
   }
   return titles[props.operateType] || '新增客户报备'
 })
+
+const isEditMode = computed(() => props.operateType === 'edit')
 
 type Model = Api.Business.ReferralOperateParams
 
@@ -66,7 +69,7 @@ function createDefaultModel(): Model {
       rebateCommissionRate: 0,
       stoneTypeList: [],
       projectPhase: '',
-      phaseTimeout: ''
+      phaseTimeout: '1'
     },
     customer: {
       id: '',
@@ -96,17 +99,16 @@ function createDefaultModel(): Model {
 }
 
 function transDetailToModel(detail: Api.Business.ReferralDetail): Model {
-  // Map ReferralDetail (which is flat + contacts) to CustomerParams (flat + contacts)
   return {
     id: detail.id,
     project: {
       id: detail.projectId,
       projectName: detail.projectName,
-      quotedPrice: 0,
-      rebateCommissionRate: detail.rebateCommissionRate,
-      stoneTypeList: [],
-      projectPhase: '',
-      phaseTimeout: ''
+      quotedPrice: detail.quotedPrice ? Number(detail.quotedPrice) : 0,
+      rebateCommissionRate: detail.rebateCommissionRate ? Number(detail.rebateCommissionRate) : 0,
+      stoneTypeList: detail.stoneTypeList || [],
+      projectPhase: detail.projectPhase || '',
+      phaseTimeout: detail.phaseTimeout || '1'
     },
     customer: {
       id: detail.customerId,
@@ -115,20 +117,29 @@ function transDetailToModel(detail: Api.Business.ReferralDetail): Model {
       address: detail.customerAddress || '',
       landline: detail.customerLandline || ''
     },
-    customerContacts: detail.customerContacts
-      ? detail.customerContacts.map(c => ({
-          contactName: c.contactName,
-          contactPhone: c.contactPhone,
-          contactEmail: c.contactEmail,
-          preferred: c.preferred,
-          memos: c.memos
-        }))
-      : [],
+    customerContacts:
+      detail.customerContacts && detail.customerContacts.length > 0
+        ? detail.customerContacts.map(c => ({
+            contactName: c.contactName,
+            contactPhone: c.contactPhone,
+            contactEmail: c.contactEmail,
+            preferred: c.preferred,
+            memos: c.memos
+          }))
+        : [
+            {
+              contactName: '',
+              contactPhone: '',
+              contactEmail: '',
+              preferred: '1',
+              memos: ''
+            }
+          ],
     referral: {
       id: detail.referralId,
       partyName: detail.referralName,
       phoneNumber: detail.referralPhoneNumber,
-      address: '' // Detail may not have address, defaulting to empty
+      address: ''
     },
     referralChannel: detail.referralChannel,
     remarks: detail.remarks
@@ -147,7 +158,7 @@ const rules: Record<RuleKey, App.Global.FormRule | App.Global.FormRule[]> = {
   'customer.partyName': [createRequiredRule('请输入客户名称')],
   'customer.phoneNumber': [createRequiredRule('请输入客户手机号'), patternRules.phone],
   'customer.address': [createRequiredRule('请输入客户地址')],
-  'project.projectName': [createRequiredRule('请输入/搜索项目名称')],
+  'project.projectName': [createRequiredRule('请搜索未被报备的项目名称')],
   'referral.partyName': [createRequiredRule('请输入报备人名称')],
   'referral.phoneNumber': [
     createRequiredRule('请输入报备人手机号'),
@@ -249,7 +260,7 @@ function fillReferralData(data: any) {
 }
 
 function handleToCustomerManage() {
-  router.push('/system/user') // Using System User as placeholder, modify as needed
+  router.push('/customer/info')
 }
 
 // Contacts management
@@ -279,7 +290,12 @@ function handlePreferredChange(index: number) {
 }
 
 // Project Remote Search with Infinite Scroll
-const projectOptions = ref<Api.Business.Project[]>([])
+type ProjectOption = Pick<
+  Api.Business.Project,
+  'id' | 'projectName' | 'quotedPrice' | 'rebateCommissionRate' | 'stoneTypeList' | 'projectPhase' | 'phaseTimeout'
+>
+
+const projectOptions = ref<ProjectOption[]>([])
 const projectLoading = ref(false)
 const projectPageNum = ref(1)
 const projectPageSize = ref(10)
@@ -313,7 +329,6 @@ async function handleSearchProject(query: string) {
 }
 
 async function handleProjectScroll(e: any) {
-  // Check if user scrolled to bottom
   const target = e.target
   if (!target) return
 
@@ -350,7 +365,7 @@ function resetProjectModel() {
   model.project.quotedPrice = 0
   model.project.stoneTypeList = []
   model.project.projectPhase = ''
-  model.project.phaseTimeout = ''
+  model.project.phaseTimeout = '1'
   model.project.rebateCommissionRate = 0
 }
 
@@ -367,7 +382,14 @@ function closeDrawer() {
 async function handleSubmit() {
   await validate()
   startLoading()
-  const { error } = await fetchMerageReferral(model)
+  const { error } = isEditMode.value
+    ? await fetchUpdateReferral({
+        id: model.id as CommonType.IdType,
+        projectId: model.project.id,
+        referralChannel: model.referralChannel,
+        remarks: model.remarks
+      })
+    : await fetchMerageReferral(model)
   if (!error) {
     window.$message?.success($t('common.updateSuccess'))
     closeDrawer()
@@ -382,30 +404,29 @@ watch(visible, async () => {
     isCustomerFormal.value = false
     isReferralFormal.value = false
     isCustomerExist.value = false
+    projectOptions.value = []
 
     if (props.operateType === 'edit' && props.rowData) {
+      // 1. 数据转换与填充
       const convertedModel = transDetailToModel(props.rowData)
+
+      // 2. 构造回显选项并预填 projectOptions
+      const currentProject: ProjectOption = {
+        id: convertedModel.project.id,
+        projectName: convertedModel.project.projectName,
+        quotedPrice: convertedModel.project.quotedPrice,
+        rebateCommissionRate: convertedModel.project.rebateCommissionRate,
+        stoneTypeList: convertedModel.project.stoneTypeList,
+        projectPhase: convertedModel.project.projectPhase,
+        phaseTimeout: convertedModel.project.phaseTimeout
+      }
+      projectOptions.value = [currentProject]
+
+      // 3. 执行模型合并
       Object.assign(model, convertedModel)
 
       if (props.rowData.partyType === 'customer') {
         isCustomerFormal.value = true
-      }
-
-      // 如果有项目名称，去查询最新的项目信息并回显
-      if (model.project.projectName) {
-        // 1. 搜索项目
-        await handleSearchProject(model.project.projectName)
-        // 2. 查找匹配项
-        const matchedProject = projectOptions.value.find(p => p.projectName === model.project.projectName)
-        // 3. 用最新信息覆盖模型中的项目信息
-        if (matchedProject) {
-          model.project.id = matchedProject.id
-          model.project.quotedPrice = matchedProject.quotedPrice
-          model.project.rebateCommissionRate = matchedProject.rebateCommissionRate
-          model.project.stoneTypeList = matchedProject.stoneTypeList
-          model.project.projectPhase = matchedProject.projectPhase
-          model.project.phaseTimeout = matchedProject.phaseTimeout
-        }
       }
     }
     restoreValidation()
@@ -421,7 +442,14 @@ watch(visible, async () => {
           <!-- Section 1: Customer Info -->
           <NSpin :show="customerPhoneLoading">
             <NSpace vertical :size="12">
-              <div class="border-l-4 border-primary pl-12px text-16px font-bold">客户信息</div>
+              <NSpace align="center" :size="8">
+                <div class="border-l-4 border-primary pl-12px text-16px font-bold">客户信息</div>
+                <NSpace v-if="isEditMode" align="center" :size="6">
+                  <NTag size="small" type="warning" bordered class="cursor-pointer" @click="handleToCustomerManage">
+                    客户信息页面中修改
+                  </NTag>
+                </NSpace>
+              </NSpace>
               <NGrid :x-gap="12" :cols="2">
                 <NFormItemGi path="customer.partyName">
                   <template #label>
@@ -439,7 +467,7 @@ watch(visible, async () => {
                   </template>
                   <NInput
                     v-model:value="model.customer.partyName"
-                    :disabled="isCustomerFormal"
+                    :disabled="isEditMode || isCustomerFormal"
                     placeholder="请输入客户名称"
                   />
                 </NFormItemGi>
@@ -448,20 +476,21 @@ watch(visible, async () => {
                     v-model:value="model.customer.phoneNumber"
                     placeholder="请输入客户手机号"
                     :loading="customerPhoneLoading"
+                    :disabled="isEditMode"
                     @blur="handlePhoneBlur('customer')"
                   />
                 </NFormItemGi>
                 <NFormItemGi label="客户地址" path="customer.address">
                   <NInput
                     v-model:value="model.customer.address"
-                    :disabled="isCustomerFormal"
+                    :disabled="isEditMode || isCustomerFormal"
                     placeholder="请输入客户地址"
                   />
                 </NFormItemGi>
                 <NFormItemGi label="客户固定电话" path="customer.landline">
                   <NInput
                     v-model:value="model.customer.landline"
-                    :disabled="isCustomerFormal"
+                    :disabled="isEditMode || isCustomerFormal"
                     placeholder="请输入客户固定电话"
                   />
                 </NFormItemGi>
@@ -474,6 +503,7 @@ watch(visible, async () => {
                       v-if="model.customerContacts.length < 3"
                       size="tiny"
                       type="primary"
+                      :disabled="isEditMode"
                       @click.stop="addContact"
                     >
                       <template #icon>
@@ -493,6 +523,7 @@ watch(visible, async () => {
                         size="tiny"
                         type="error"
                         quaternary
+                        :disabled="isEditMode"
                         @click="removeContact(index)"
                       >
                         <template #icon>
@@ -501,33 +532,47 @@ watch(visible, async () => {
                       </NButton>
                     </div>
                     <NGrid :x-gap="12" :cols="2">
-                      <NFormItemGi
-                        label="联系人名称"
-                        :path="`customerContacts[${index}].contactName`"
-                        :rule="createRequiredRule('请输入联系人名称')"
-                      >
-                        <NInput v-model:value="contact.contactName" placeholder="请输入联系人名称" />
+                      <NFormItemGi label="联系人名称" :path="`customerContacts[${index}].contactName`">
+                        <NInput
+                          v-model:value="contact.contactName"
+                          :disabled="isEditMode"
+                          placeholder="请输入联系人名称"
+                        />
                       </NFormItemGi>
                       <NFormItemGi
                         label="联系人电话"
                         :path="`customerContacts[${index}].contactPhone`"
-                        :rule="[createRequiredRule('请输入联系人电话'), patternRules.phone]"
+                        :rule="patternRules.phone"
                       >
-                        <NInput v-model:value="contact.contactPhone" placeholder="请输入联系人电话" />
+                        <NInput
+                          v-model:value="contact.contactPhone"
+                          :disabled="isEditMode"
+                          placeholder="请输入联系人电话"
+                        />
                       </NFormItemGi>
                       <NFormItemGi label="联系人邮箱" :path="`customerContacts[${index}].contactEmail`">
-                        <NInput v-model:value="contact.contactEmail" placeholder="请输入联系人邮箱" />
+                        <NInput
+                          v-model:value="contact.contactEmail"
+                          :disabled="isEditMode"
+                          placeholder="请输入联系人邮箱"
+                        />
                       </NFormItemGi>
                       <NFormItemGi label="是否首要联系人">
                         <NSwitch
                           v-model:value="contact.preferred"
                           checked-value="1"
                           unchecked-value="0"
+                          :disabled="isEditMode"
                           @update:value="handlePreferredChange(index)"
                         />
                       </NFormItemGi>
                       <NFormItemGi label="备注" :span="2">
-                        <NInput v-model:value="contact.memos" type="textarea" placeholder="请输入联系人备注" />
+                        <NInput
+                          v-model:value="contact.memos"
+                          :disabled="isEditMode"
+                          type="textarea"
+                          placeholder="请输入联系人备注"
+                        />
                       </NFormItemGi>
                     </NGrid>
                   </div>
@@ -542,11 +587,16 @@ watch(visible, async () => {
           <NSpace vertical :size="12">
             <div class="border-l-4 border-primary pl-12px text-16px font-bold">项目信息</div>
             <NGrid :x-gap="12" :cols="2">
-              <NFormItemGi label="项目名称" path="project.projectName">
+              <NFormItemGi path="project.projectName">
+                <template #label>
+                  <NSpace align="center" :size="6">
+                    <span>项目名称</span>
+                  </NSpace>
+                </template>
                 <NSelect
                   v-model:value="model.project.projectName"
                   filterable
-                  placeholder="搜索或输入项目名称"
+                  placeholder="请搜索未被报备的项目名称"
                   :options="projectOptions.map(p => ({ label: p.projectName, value: p.projectName }))"
                   :loading="projectLoading"
                   remote
@@ -582,7 +632,6 @@ watch(visible, async () => {
                   :format="
                     (value: number | null) => {
                       if (value === null) return ''
-                      // Display as value * 100 (e.g., 0.05 -> 5)
                       const displayValue = (value * 100).toFixed(2).replace(/\.?0+$/, '')
                       return `${displayValue}%`
                     }
@@ -590,7 +639,6 @@ watch(visible, async () => {
                   :parse="
                     (input: string) => {
                       const nums = input.replace(/%/g, '').trim()
-                      // Parse as input / 100 (e.g., 5 -> 0.05)
                       if (/^\d+(\.(\d+)?)?$/.test(nums)) return Number(nums) / 100
                       return nums === '' ? null : Number.NaN
                     }
@@ -634,7 +682,14 @@ watch(visible, async () => {
           <!-- Section 3: Referral Info -->
           <NSpin :show="referralPhoneLoading">
             <NSpace vertical :size="12">
-              <div class="border-l-4 border-primary pl-12px text-16px font-bold">推荐人信息</div>
+              <NSpace align="center" :size="8">
+                <div class="border-l-4 border-primary pl-12px text-16px font-bold">推荐人信息</div>
+                <NSpace v-if="isEditMode" align="center" :size="6">
+                  <NTag size="small" type="warning" bordered class="cursor-pointer" @click="handleToCustomerManage">
+                    客户信息页面中修改
+                  </NTag>
+                </NSpace>
+              </NSpace>
               <NGrid :x-gap="12" :cols="2">
                 <NFormItemGi path="referral.partyName">
                   <template #label>
@@ -652,7 +707,7 @@ watch(visible, async () => {
                   </template>
                   <NInput
                     v-model:value="model.referral.partyName"
-                    :disabled="isReferralFormal"
+                    :disabled="isEditMode || isReferralFormal"
                     placeholder="请输入推荐人名称"
                   />
                 </NFormItemGi>
@@ -661,13 +716,14 @@ watch(visible, async () => {
                     v-model:value="model.referral.phoneNumber"
                     placeholder="请输入推荐人手机号"
                     :loading="referralPhoneLoading"
+                    :disabled="isEditMode"
                     @blur="handlePhoneBlur('referral')"
                   />
                 </NFormItemGi>
                 <NFormItemGi label="推荐人地址" path="referral.address">
                   <NInput
                     v-model:value="model.referral.address"
-                    :disabled="isReferralFormal"
+                    :disabled="isEditMode || isReferralFormal"
                     placeholder="请输入推荐人地址"
                   />
                 </NFormItemGi>

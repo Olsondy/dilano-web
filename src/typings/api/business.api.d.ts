@@ -113,6 +113,10 @@ declare namespace Api {
       customerContacts: CustomerContact[]
       customerAddress?: string
       customerLandline?: string
+      quotedPrice?: number
+      stoneTypeList?: string[]
+      projectPhase?: string
+      phaseTimeout?: Common.TimeoutStatus
     }
 
     interface CustomerParams {
@@ -148,7 +152,7 @@ declare namespace Api {
         quotedPrice: number
         rebateCommissionRate: number
         projectPhase: string
-        phaseTimeout: string
+        phaseTimeout: Common.TimeoutStatus
       }
       customer: {
         id: CommonType.IdType
@@ -164,6 +168,14 @@ declare namespace Api {
         phoneNumber: string
         address: string
       }
+      referralChannel: string
+      remarks: string
+    }
+
+    /** referral update params */
+    interface ReferralUpdateParams {
+      id: CommonType.IdType
+      projectId: CommonType.IdType
       referralChannel: string
       remarks: string
     }
