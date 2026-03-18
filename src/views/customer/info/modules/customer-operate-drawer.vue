@@ -257,17 +257,13 @@ watch(visible, () => {
                       </NButton>
                     </div>
                     <NGrid :x-gap="12" :cols="2">
-                      <NFormItemGi
-                        label="联系人名称"
-                        :path="`customerContacts[${index}].contactName`"
-                        :rule="createRequiredRule('请输入联系人名称')"
-                      >
+                      <NFormItemGi label="联系人名称" :path="`customerContacts[${index}].contactName`">
                         <NInput v-model:value="contact.contactName" placeholder="请输入联系人名称" />
                       </NFormItemGi>
                       <NFormItemGi
                         label="联系人电话"
                         :path="`customerContacts[${index}].contactPhone`"
-                        :rule="[createRequiredRule('请输入联系人电话'), patternRules.phone]"
+                        :rule="patternRules.phone"
                       >
                         <NInput v-model:value="contact.contactPhone" placeholder="请输入联系人电话" />
                       </NFormItemGi>

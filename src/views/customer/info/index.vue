@@ -195,7 +195,6 @@ async function edit(id: CommonType.IdType) {
           :loading="loading"
           :show-add="hasAuth('business:parties:add')"
           :show-delete="hasAuth('business:parties:remove')"
-          :show-export="hasAuth('business:parties:export')"
           @add="handleAdd"
           @delete="handleBatchDelete"
           @refresh="getData"

@@ -30,6 +30,7 @@ const headers: Record<string, string> = {
 const uploadRef = ref()
 const message = ref('')
 const success = ref(false)
+const hasImported = ref(false)
 const submitting = ref(false)
 const fileList = ref<UploadFileInfo[]>([])
 
@@ -94,7 +95,7 @@ const importResult = ref<ImportResult | null>(null)
 
 function closeDrawer() {
   visible.value = false
-  if (success.value) {
+  if (hasImported.value) {
     emit('submitted')
   }
 }
@@ -129,6 +130,7 @@ function handleFinish({ event }: { event?: ProgressEvent }) {
       importResult.value = response.data
       message.value = response.msg
       success.value = true
+      hasImported.value = true
       window.$message?.success(response.msg || $t('common.importSuccess'))
 
       // 使用 nextTick + setTimeout 确保在组件内部状态更新后再执行物理清空
@@ -165,6 +167,7 @@ watch(visible, val => {
   if (val) {
     fileList.value = []
     success.value = false
+    hasImported.value = false
     submitting.value = false
     message.value = ''
     importResult.value = null
@@ -178,6 +181,7 @@ watch(visible, val => {
     :title="$t('common.import')"
     preset="card"
     :bordered="false"
+    :mask-closable="false"
     class="max-w-90% w-650px"
     @close="closeDrawer"
   >
