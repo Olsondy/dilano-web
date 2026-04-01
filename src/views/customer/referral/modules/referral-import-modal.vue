@@ -67,8 +67,7 @@ async function beforeUpload(data: { file: UploadFileInfo; fileList: UploadFileIn
         } else {
           resolve(true)
         }
-      } catch (err) {
-        console.error('解析 Excel 失败:', err)
+      } catch {
         resolve(true)
       }
     }
@@ -143,8 +142,7 @@ function handleFinish({ event }: { event?: ProgressEvent }) {
       window.$message?.error(response.msg || $t('common.importFail'))
       success.value = false
     }
-  } catch (e) {
-    console.error('解析响应失败:', e)
+  } catch {
     window.$message?.error('服务器响应格式不正确')
     success.value = false
   }
