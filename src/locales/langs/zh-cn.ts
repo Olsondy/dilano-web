@@ -40,6 +40,7 @@ const local: App.I18n.Schema = {
     deleteSuccess: '删除成功',
     confirmDelete: '确认删除吗？',
     edit: '编辑',
+    view: '查看',
     download: '下载',
     warning: '警告',
     error: '错误',

@@ -18,7 +18,7 @@ defineOptions({
 
 interface Props {
   /** the type of operation */
-  operateType: NaiveUI.TableOperateType
+  operateType: NaiveUI.TableOperateType | 'view'
   /** the edit row data */
   rowData?: Api.Business.ReferralDetail | null
 }
@@ -41,14 +41,16 @@ const { createRequiredRule, patternRules } = useFormRules()
 const router = useRouter()
 
 const title = computed(() => {
-  const titles: Record<NaiveUI.TableOperateType, string> = {
+  const titles: Record<NaiveUI.TableOperateType | 'view', string> = {
     add: '新增客户报备',
-    edit: '编辑报备项目与备注'
+    edit: '编辑报备项目与备注',
+    view: '查看报备详情'
   }
-  return titles[props.operateType] || '新增客户报备'
+  return titles[props.operateType] || '客户报备'
 })
 
 const isEditMode = computed(() => props.operateType === 'edit')
+const isViewMode = computed(() => props.operateType === 'view')
 
 type Model = Api.Business.ReferralOperateParams
 
@@ -406,7 +408,7 @@ watch(visible, async () => {
     isCustomerExist.value = false
     projectOptions.value = []
 
-    if (props.operateType === 'edit' && props.rowData) {
+    if ((props.operateType === 'edit' || props.operateType === 'view') && props.rowData) {
       // 1. 数据转换与填充
       const convertedModel = transDetailToModel(props.rowData)
 
@@ -467,7 +469,7 @@ watch(visible, async () => {
                   </template>
                   <NInput
                     v-model:value="model.customer.partyName"
-                    :disabled="isEditMode || isCustomerFormal"
+                    :disabled="isEditMode || isViewMode || isCustomerFormal"
                     placeholder="请输入客户名称"
                   />
                 </NFormItemGi>
@@ -476,21 +478,21 @@ watch(visible, async () => {
                     v-model:value="model.customer.phoneNumber"
                     placeholder="请输入客户手机号"
                     :loading="customerPhoneLoading"
-                    :disabled="isEditMode"
+                    :disabled="isEditMode || isViewMode"
                     @blur="handlePhoneBlur('customer')"
                   />
                 </NFormItemGi>
                 <NFormItemGi label="客户地址" path="customer.address">
                   <NInput
                     v-model:value="model.customer.address"
-                    :disabled="isEditMode || isCustomerFormal"
+                    :disabled="isEditMode || isViewMode || isCustomerFormal"
                     placeholder="请输入客户地址"
                   />
                 </NFormItemGi>
                 <NFormItemGi label="客户固定电话" path="customer.landline">
                   <NInput
                     v-model:value="model.customer.landline"
-                    :disabled="isEditMode || isCustomerFormal"
+                    :disabled="isEditMode || isViewMode || isCustomerFormal"
                     placeholder="请输入客户固定电话"
                   />
                 </NFormItemGi>
@@ -500,7 +502,7 @@ watch(visible, async () => {
                 <NCollapseItem title="客户联系人信息" name="contacts">
                   <template #header-extra>
                     <NButton
-                      v-if="model.customerContacts.length < 3"
+                      v-if="model.customerContacts.length < 3 && !isViewMode"
                       size="tiny"
                       type="primary"
                       :disabled="isEditMode"
@@ -519,7 +521,7 @@ watch(visible, async () => {
                   >
                     <div class="absolute right-8px top-8px">
                       <NButton
-                        v-if="model.customerContacts.length > 1"
+                        v-if="model.customerContacts.length > 1 && !isViewMode"
                         size="tiny"
                         type="error"
                         quaternary
@@ -535,7 +537,7 @@ watch(visible, async () => {
                       <NFormItemGi label="联系人名称" :path="`customerContacts[${index}].contactName`">
                         <NInput
                           v-model:value="contact.contactName"
-                          :disabled="isEditMode"
+                          :disabled="isEditMode || isViewMode"
                           placeholder="请输入联系人名称"
                         />
                       </NFormItemGi>
@@ -546,14 +548,14 @@ watch(visible, async () => {
                       >
                         <NInput
                           v-model:value="contact.contactPhone"
-                          :disabled="isEditMode"
+                          :disabled="isEditMode || isViewMode"
                           placeholder="请输入联系人电话"
                         />
                       </NFormItemGi>
                       <NFormItemGi label="联系人邮箱" :path="`customerContacts[${index}].contactEmail`">
                         <NInput
                           v-model:value="contact.contactEmail"
-                          :disabled="isEditMode"
+                          :disabled="isEditMode || isViewMode"
                           placeholder="请输入联系人邮箱"
                         />
                       </NFormItemGi>
@@ -562,14 +564,14 @@ watch(visible, async () => {
                           v-model:value="contact.preferred"
                           checked-value="1"
                           unchecked-value="0"
-                          :disabled="isEditMode"
+                          :disabled="isEditMode || isViewMode"
                           @update:value="handlePreferredChange(index)"
                         />
                       </NFormItemGi>
                       <NFormItemGi label="备注" :span="2">
                         <NInput
                           v-model:value="contact.memos"
-                          :disabled="isEditMode"
+                          :disabled="isEditMode || isViewMode"
                           type="textarea"
                           placeholder="请输入联系人备注"
                         />
@@ -601,6 +603,7 @@ watch(visible, async () => {
                   :loading="projectLoading"
                   remote
                   clearable
+                  :disabled="isViewMode"
                   @focus="() => handleSearchProject('')"
                   @search="handleSearchProject"
                   @update:value="handleSelectProject"
@@ -707,7 +710,7 @@ watch(visible, async () => {
                   </template>
                   <NInput
                     v-model:value="model.referral.partyName"
-                    :disabled="isEditMode || isReferralFormal"
+                    :disabled="isEditMode || isViewMode || isReferralFormal"
                     placeholder="请输入推荐人名称"
                   />
                 </NFormItemGi>
@@ -716,19 +719,19 @@ watch(visible, async () => {
                     v-model:value="model.referral.phoneNumber"
                     placeholder="请输入推荐人手机号"
                     :loading="referralPhoneLoading"
-                    :disabled="isEditMode"
+                    :disabled="isEditMode || isViewMode"
                     @blur="handlePhoneBlur('referral')"
                   />
                 </NFormItemGi>
                 <NFormItemGi label="推荐人地址" path="referral.address">
                   <NInput
                     v-model:value="model.referral.address"
-                    :disabled="isEditMode || isReferralFormal"
+                    :disabled="isEditMode || isViewMode || isReferralFormal"
                     placeholder="请输入推荐人地址"
                   />
                 </NFormItemGi>
                 <NFormItemGi label="推荐人渠道" path="referralChannel">
-                  <NInput v-model:value="model.referralChannel" placeholder="请输入推荐人渠道" />
+                  <NInput v-model:value="model.referralChannel" :disabled="isViewMode" placeholder="请输入推荐人渠道" />
                 </NFormItemGi>
                 <NFormItemGi label="备注" path="referralRemarks" :span="2">
                   <NInput
@@ -736,6 +739,7 @@ watch(visible, async () => {
                     type="textarea"
                     :maxlength="500"
                     show-count
+                    :disabled="isViewMode"
                     placeholder="请输入备注"
                   />
                 </NFormItemGi>
@@ -745,7 +749,7 @@ watch(visible, async () => {
         </NForm>
       </NSpin>
       <template #footer>
-        <NSpace :size="16">
+        <NSpace v-if="!isViewMode" :size="16">
           <NButton @click="closeDrawer">{{ $t('common.cancel') }}</NButton>
           <NButton type="primary" :loading="loading" :disabled="isCustomerExist" @click="handleSubmit">
             {{ $t('common.save') }}

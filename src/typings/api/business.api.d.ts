@@ -74,16 +74,22 @@ declare namespace Api {
       projectId: number
       /** 项目名称 */
       projectName: string
+      /** 项目是否已删除 */
+      projectDeleted?: string
       /** 项目佣金 */
       rebateCommission: number
       /** 项目佣金比例 */
       rebateCommissionRate: number
       /** 报备人id */
       referralId: string
+      /** 客户是否已删除 */
+      customerDeleted?: string
       /** 报备人联系方式 */
       referralPhoneNumber: string
       /** 报备人名称 */
       referralName: string
+      /** 报备人是否已删除 */
+      referralDeleted?: string
       /** 报备渠道 */
       referralChannel: string
       /** 备注 */

@@ -1,7 +1,7 @@
 <script setup lang="tsx">
-import { ref } from 'vue'
+import { h, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { NButton, NCard, NDataTable } from 'naive-ui'
+import { NButton, NCard, NDataTable, NTag } from 'naive-ui'
 import { useBoolean } from '@sa/hooks'
 import { fetchGetReferral, fetchGetReferralList } from '@/service/api/business/referral'
 import { useAppStore } from '@/store/modules/app'
@@ -14,6 +14,8 @@ import ButtonIcon from '@/components/custom/button-icon.vue'
 import ReferralSearch from './modules/referral-search.vue'
 import ReferralOperateDrawer from './modules/referral-operate-drawer.vue'
 import ReferralImportModal from './modules/referral-import-modal.vue'
+import ReferralProjectEditor from './modules/referral-project-editor.vue'
+import ReferralTextEditor from './modules/referral-text-editor.vue'
 
 defineOptions({
   name: 'ReferralList'
@@ -28,6 +30,7 @@ const router = useRouter()
 const { hasAuth } = useAuth()
 const { bool: importVisible, setTrue: openImportModal } = useBoolean()
 const editingDetail = ref<Api.Business.ReferralDetail | null>(null)
+const operateType = ref<NaiveUI.TableOperateType | 'view'>('add')
 
 const {
   columns,
@@ -65,7 +68,19 @@ const {
       key: 'customerName',
       title: '客户名称',
       align: 'center',
-      minWidth: 100
+      minWidth: 120,
+      render(row) {
+        return (
+          <div class="flex-center gap-4px">
+            <span>{row.customerName}</span>
+            {row.customerDeleted === '1' && (
+              <NTag type="error" size="small" bordered={false}>
+                已删除
+              </NTag>
+            )}
+          </div>
+        )
+      }
     },
     {
       key: 'customerPhoneNumber',
@@ -77,19 +92,15 @@ const {
       key: 'projectName',
       title: '项目名称',
       align: 'center',
-      minWidth: 120,
-      ellipsis: true,
+      minWidth: 200,
       render(row) {
-        return (
-          <NButton
-            type="primary"
-            text
-            class="font-bold underline"
-            onClick={() => router.push({ path: '/project/info', query: { projectName: row.projectName } })}
-          >
-            {row.projectName}
-          </NButton>
-        )
+        return h(ReferralProjectEditor, {
+          row,
+          onUpdate: () => getData(),
+          onClickName: (projectName: string) => {
+            router.push({ path: '/project/info', query: { projectName } })
+          }
+        })
       }
     },
     {
@@ -117,7 +128,19 @@ const {
       key: 'referralName',
       title: '报备人',
       align: 'center',
-      minWidth: 100
+      minWidth: 120,
+      render(row) {
+        return (
+          <div class="flex-center gap-4px">
+            <span>{row.referralName}</span>
+            {row.referralDeleted === '1' && (
+              <NTag type="error" size="small" bordered={false}>
+                已删除
+              </NTag>
+            )}
+          </div>
+        )
+      }
     },
     {
       key: 'referralPhoneNumber',
@@ -135,14 +158,30 @@ const {
       key: 'referralChannel',
       title: '推荐渠道',
       align: 'center',
-      minWidth: 100
+      minWidth: 120,
+      render(row) {
+        return h(ReferralTextEditor, {
+          row,
+          field: 'referralChannel',
+          label: '推荐渠道',
+          onUpdate: () => getData()
+        })
+      }
     },
     {
       key: 'remarks',
       title: '备注',
       align: 'center',
-      minWidth: 150,
-      ellipsis: true
+      minWidth: 180,
+      render(row) {
+        return h(ReferralTextEditor, {
+          row,
+          field: 'remarks',
+          label: '备注',
+          type: 'textarea',
+          onUpdate: () => getData()
+        })
+      }
     },
     {
       key: 'operate',
@@ -150,17 +189,14 @@ const {
       align: 'center',
       width: 80,
       render: row => {
-        if (!hasAuth('business:referral:edit')) {
-          return null
-        }
         return (
           <div class="flex-center gap-8px">
             <ButtonIcon
               text
               type="primary"
-              icon="material-symbols:drive-file-rename-outline-outline"
-              tooltipContent={$t('common.edit')}
-              onClick={() => edit(row.id)}
+              icon="majesticons:eye-line"
+              tooltipContent={$t('common.view')}
+              onClick={() => view(row.id)}
             />
           </div>
         )
@@ -169,14 +205,20 @@ const {
   ]
 })
 
-const { drawerVisible, operateType, handleAdd, checkedRowKeys } = useTableOperate(data, getData)
+const { drawerVisible, openDrawer, checkedRowKeys } = useTableOperate(data, getData)
 
-async function edit(id: CommonType.IdType) {
+function handleAdd() {
+  operateType.value = 'add'
+  editingDetail.value = null
+  openDrawer()
+}
+
+async function view(id: CommonType.IdType) {
   const { data: referralData, error } = await fetchGetReferral(id)
   if (!error && referralData) {
-    operateType.value = 'edit'
+    operateType.value = 'view'
     editingDetail.value = referralData
-    drawerVisible.value = true
+    openDrawer()
   }
 }
 
