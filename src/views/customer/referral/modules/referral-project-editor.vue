@@ -70,9 +70,7 @@ async function handleUpdateProject(val: string | number) {
   updating.value = true
   const { error } = await fetchUpdateReferral({
     id: props.row.id,
-    projectId: val as CommonType.IdType,
-    remarks: props.row.remarks || '',
-    referralChannel: props.row.referralChannel || ''
+    projectId: val as CommonType.IdType
   })
 
   if (!error) {

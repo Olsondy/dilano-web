@@ -181,9 +181,9 @@ declare namespace Api {
     /** referral update params */
     interface ReferralUpdateParams {
       id: CommonType.IdType
-      projectId: CommonType.IdType
-      referralChannel: string
-      remarks: string
+      projectId?: CommonType.IdType
+      referralChannel?: string
+      remarks?: string
     }
 
     /** party (customer/referral info) */

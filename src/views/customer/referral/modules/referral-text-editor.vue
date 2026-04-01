@@ -38,9 +38,7 @@ async function handleSave() {
   loading.value = true
   const { error } = await fetchUpdateReferral({
     id: props.row.id,
-    projectId: props.row.projectId as unknown as CommonType.IdType,
-    referralChannel: props.field === 'referralChannel' ? value.value : props.row.referralChannel || '',
-    remarks: props.field === 'remarks' ? value.value : props.row.remarks || ''
+    [props.field]: value.value
   })
   loading.value = false
 
