@@ -165,7 +165,7 @@ watch(
   <NCard title="动态消息" :bordered="false" size="small" segmented class="news-card card-wrapper">
     <div ref="wrapRef" class="news-wrapper" aria-live="polite" @mouseenter="pause" @mouseleave="play">
       <div v-if="!items || items.length === 0" class="h-full flex-center">
-        <NEmpty description="暂无动态" />
+        <NEmpty description="暂无最新动态" />
       </div>
       <!-- 滚动容器：当需要滚动时包含 items 的两倍，用于无缝循环；否则只渲染一次 -->
       <NList
