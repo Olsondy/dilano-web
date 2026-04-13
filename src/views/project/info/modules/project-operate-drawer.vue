@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useLoading } from '@sa/hooks'
-import { fetchCreateProject, fetchUpdateProject } from '@/service/api/business/project'
+import { fetchCreateProject, fetchGetProjectDetail, fetchUpdateProject } from '@/service/api/business/project'
 import { useFormRules, useNaiveForm } from '@/hooks/common/form'
 import { formatCurrency } from '@/utils/common'
 import { $t } from '@/locales'
@@ -44,6 +44,8 @@ const title = computed(() => {
 type Model = Api.Business.ProjectOperateParams
 
 const model: Model = reactive(createDefaultModel())
+const projectPhaseLockRemainingSeconds = ref(0)
+const projectPhaseChangeIntervalSeconds = ref(0)
 
 function createDefaultModel(): Model {
   return {
@@ -70,22 +72,77 @@ const rules: Record<RuleKey, App.Global.FormRule> = {
   rebateCommissionRate: createNumberRequiredRule('返点佣金比例不能为空')
 }
 
+const projectPhaseDisabled = computed(() => {
+  if (props.operateType === 'add') {
+    return true
+  }
+  return model.sendSmsSwitch === '1' && projectPhaseLockRemainingSeconds.value > 0
+})
+
+const showProjectPhaseLockTip = computed(() => {
+  return props.operateType === 'edit' && model.sendSmsSwitch === '1' && projectPhaseLockRemainingSeconds.value > 0
+})
+
+const projectPhaseLockTip = computed(() => {
+  const intervalText = formatDuration(projectPhaseChangeIntervalSeconds.value)
+  const remainingText = formatDuration(projectPhaseLockRemainingSeconds.value)
+  return `距离上次项目阶段修改未超过${intervalText}，当前项目阶段暂不可编辑，约 ${remainingText} 后可再次修改。其他字段仍可编辑并保存；关闭短信提醒后不受此限制。`
+})
+
 function parseCurrency(input: string) {
   const nums = input.replace(/(,|¥|\s)/g, '').trim()
   if (/^\d+(\.(\d+)?)?$/.test(nums)) return Number(nums)
   return nums === '' ? null : Number.NaN
 }
 
-function handleUpdateModelWhenEdit() {
+function resetProjectPhaseLockState() {
+  projectPhaseLockRemainingSeconds.value = 0
+  projectPhaseChangeIntervalSeconds.value = 0
+}
+
+function formatDuration(seconds: number) {
+  if (seconds <= 0) {
+    return '0秒'
+  }
+  if (seconds < 60) {
+    return `${seconds}秒`
+  }
+  const minutes = Math.floor(seconds / 60)
+  const remainSeconds = seconds % 60
+  if (remainSeconds === 0) {
+    return `${minutes}分钟`
+  }
+  return `${minutes}分${remainSeconds}秒`
+}
+
+function applyProjectDetail(project: Api.Business.Project) {
+  Object.assign(model, project)
+  model.quotedPrice = Number(project.quotedPrice)
+  model.rebateCommissionRate = Number(project.rebateCommissionRate)
+  projectPhaseLockRemainingSeconds.value = Number(project.projectPhaseLockRemainingSeconds ?? 0)
+  projectPhaseChangeIntervalSeconds.value = Number(project.projectPhaseChangeIntervalSeconds ?? 0)
+}
+
+async function handleUpdateModelWhenEdit() {
   if (props.operateType === 'add') {
     Object.assign(model, createDefaultModel())
+    resetProjectPhaseLockState()
     return
   }
 
-  if (props.operateType === 'edit' && props.rowData) {
-    Object.assign(model, props.rowData)
-    model.quotedPrice = Number(props.rowData.quotedPrice)
-    model.rebateCommissionRate = Number(props.rowData.rebateCommissionRate)
+  if (props.operateType === 'edit' && props.rowData?.id) {
+    startLoading()
+    try {
+      const { data, error } = await fetchGetProjectDetail(props.rowData.id)
+      if (!error && data) {
+        applyProjectDetail(data)
+        return
+      }
+      applyProjectDetail(props.rowData)
+      resetProjectPhaseLockState()
+    } finally {
+      endLoading()
+    }
   }
 }
 
@@ -136,9 +193,9 @@ async function handleSubmit() {
   endLoading()
 }
 
-watch(visible, () => {
-  if (visible.value) {
-    handleUpdateModelWhenEdit()
+watch(visible, async isVisible => {
+  if (isVisible) {
+    await handleUpdateModelWhenEdit()
     restoreValidation()
   }
 })
@@ -162,15 +219,30 @@ watch(visible, () => {
           </NFormItem>
           <NRow :gutter="[0, 24]">
             <NCol :span="8">
-              <NFormItem label="项目阶段" path="projectPhase">
+              <NFormItem path="projectPhase">
+                <template #label>
+                  <div class="flex-center">
+                    <FormTip
+                      :content="
+                        showProjectPhaseLockTip
+                          ? projectPhaseLockTip
+                          : '项目阶段变更会触发短信提醒；开启短信提醒后，短时间内会按系统配置限制重复修改。'
+                      "
+                    />
+                    <span>项目阶段</span>
+                  </div>
+                </template>
                 <DictSelect
                   v-model:value="model.projectPhase"
                   :placeholder="$t('请选择项目阶段')"
                   dict-code="business_project_phase"
-                  :disabled="operateType === 'add'"
+                  :disabled="projectPhaseDisabled"
                   :disabled-options="operateType === 'edit' ? ['created'] : []"
                   clearable
                 />
+                <div v-if="showProjectPhaseLockTip" class="mt-8px text-12px text-#d97706">
+                  {{ projectPhaseLockTip }}
+                </div>
               </NFormItem>
             </NCol>
             <NCol :span="7" :offset="1">

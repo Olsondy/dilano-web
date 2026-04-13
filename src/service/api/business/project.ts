@@ -20,6 +20,14 @@ export function fetchCreateProject(data: Api.Business.ProjectOperateParams) {
   })
 }
 
+/** 获取项目详情 */
+export function fetchGetProjectDetail(id: CommonType.IdType) {
+  return request<Api.Business.Project>({
+    url: `/business/project/v1/${id}`,
+    method: 'get'
+  })
+}
+
 /** 修改项目信息 */
 export function fetchUpdateProject(data: Api.Business.ProjectOperateParams) {
   return request<boolean>({

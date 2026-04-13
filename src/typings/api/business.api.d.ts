@@ -27,11 +27,19 @@ declare namespace Api {
       rebateCommissionRate: number
       /** 项目阶段(已测量、已报价、已签合同) */
       projectPhase: string
+      /** 项目阶段最后一次变更时间 */
+      lastPhaseChangeTime?: string
       /** 发生短信通知开关(0关闭 1开启) */
       sendSmsSwitch: Common.SwitchStatus
       /** 超时状态系统提醒（0关闭 1开启) */
       timeOutSwitch: Common.SwitchStatus
       phaseTimeout: Common.TimeoutStatus
+      /** 当前项目阶段是否被锁定 */
+      projectPhaseLocked?: boolean
+      /** 距离可再次修改项目阶段的剩余秒数 */
+      projectPhaseLockRemainingSeconds?: number
+      /** 项目阶段短信限频间隔秒数 */
+      projectPhaseChangeIntervalSeconds?: number
     }>
 
     /** project search params */
